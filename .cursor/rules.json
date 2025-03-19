@@ -1,0 +1,57 @@
+{
+  "rules": {
+    "swift": {
+      "namingConventions": {
+        "classes": "PascalCase",
+        "structs": "PascalCase",
+        "enums": "PascalCase",
+        "protocols": "PascalCase",
+        "functions": "camelCase",
+        "variables": "camelCase",
+        "constants": "camelCase",
+        "properties": "camelCase",
+        "typeAliases": "PascalCase",
+        "enumCases": "camelCase"
+      },
+      "codeStyle": {
+        "maxLineLength": 120,
+        "indentWidth": 2,
+        "preferLet": true,
+        "bracesOnNewLine": false,
+        "spacesAroundOperators": true
+      },
+      "documentation": {
+        "requirePublicDocumentation": true,
+        "requireInternalDocumentation": false,
+        "requirePrivateDocumentation": false
+      }
+    },
+    "fileOrganization": {
+      "groupByFeature": true,
+      "recommended": {
+        "Models": ["*.swift"],
+        "Views": ["*View.swift", "*Controller.swift"],
+        "ViewModels": ["*ViewModel.swift"],
+        "Services": ["*Service.swift", "*Client.swift", "*Manager.swift"],
+        "Utils": ["*Utils.swift", "*Helper.swift", "*Extension.swift"]
+      }
+    },
+    "projectStructure": {
+      "enforceFileStructure": false,
+      "enforceNamespacing": true
+    }
+  },
+  "analysis": {
+    "enableAI": true,
+    "scanInterval": "onSave",
+    "qualityThreshold": "medium",
+    "ignorePaths": [
+      "Tests/**/*",
+      "Pods/**/*"
+    ],
+    "ignorePatterns": [
+      "// cursor-ignore-next-line",
+      "/* cursor-ignore-block */"
+    ]
+  }
+} 

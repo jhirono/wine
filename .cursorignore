@@ -1,0 +1,45 @@
+# Build products
+build/
+DerivedData/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcuserstate
+*.xcworkspace/
+xcuserdata/
+
+# CocoaPods
+Pods/
+Podfile.lock
+
+# Swift Package Manager
+.build/
+Package.resolved
+.swiftpm/
+
+# App-Specific
+.DS_Store
+*.moved-aside
+*.xccheckout
+*.xcscmblueprint
+timeline.xctimeline
+playground.xcworkspace
+
+# Temporary files
+*.swp
+*.swo
+*~
+.*.sw*
+
+# Environment variables - NEVER commit these to source control
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+*.env
+config/secrets.json
+APIKeys.plist
+Config.plist
+Secrets.swift 
