@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		38BFF6122D8D5281006DD67F /* Config.plist in Resources */ = {isa = PBXBuildFile; fileRef = 38BFF6112D8D5281006DD67F /* Config.plist */; };
 		9900001E29A0001E29A0001E /* WineAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9900001D29A0001D29A0001D /* WineAppApp.swift */; };
 		9900002029A0002029A0002D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9900001F29A0001F29A0001F /* ContentView.swift */; };
 		9900002229A0002229A0002F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9900002129A0002129A0002E /* Assets.xcassets */; };
@@ -19,6 +20,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		38BFF6112D8D5281006DD67F /* Config.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Config.plist; sourceTree = "<group>"; };
 		9900001A29A0001A29A0001A /* WineApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WineApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9900001D29A0001D29A0001D /* WineAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WineAppApp.swift; sourceTree = "<group>"; };
 		9900001F29A0001F29A0001F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -61,6 +63,7 @@
 		9900001C29A0001C29A0001C /* WineApp */ = {
 			isa = PBXGroup;
 			children = (
+				38BFF6112D8D5281006DD67F /* Config.plist */,
 				9900004029A0004029A00040 /* Models */,
 				9900004129A0004129A00041 /* Views */,
 				9900004229A0004229A00042 /* Services */,
@@ -165,6 +168,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9900002529A0002529A00025 /* Preview Assets.xcassets in Resources */,
+				38BFF6122D8D5281006DD67F /* Config.plist in Resources */,
 				9900002229A0002229A0002F /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -394,4 +398,4 @@
 /* End XCConfigurationList section */
 	};
 	rootObject = 9900001229A0001229A00012 /* Project object */;
-} 
+}

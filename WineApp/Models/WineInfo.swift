@@ -6,15 +6,39 @@ struct WineInfo: Identifiable, Codable {
     var winery: String?
     var vintage: String?
     var region: String?
+    var subRegion: String?
     var country: String = ""
     var grapeVarieties: String?
     var alcoholContent: String = ""
-    var style: String = ""
-    var tastingNotes: String?
-    var foodPairings: String?
-    var criticsScore: String = ""
-    var agingPotential: String = ""
-    var additionalInfo: String?
+    var wineStyleType: String = ""
+    var criticsScores: String = ""
+    var tastingNotes: TastingNotes?
+    var foodPairings: FoodPairings?
+    var whenToDrinkYear: String = ""
+    
+    struct TastingNotes: Codable {
+        var aroma: String = ""
+        var palate: String = ""
+        var body: String = ""
+        var finish: String = ""
+    }
+    
+    struct FoodPairings: Codable {
+        var dishes: [Dish] = []
+        
+        struct Dish: Codable, Identifiable {
+            var id = UUID()
+            var name: String
+            var ingredientType: String
+            var explanation: String
+            
+            enum CodingKeys: String, CodingKey {
+                case name
+                case ingredientType = "ingredient_type"
+                case explanation
+            }
+        }
+    }
     
     init(
         id: UUID = UUID(),
@@ -22,146 +46,168 @@ struct WineInfo: Identifiable, Codable {
         winery: String? = nil,
         vintage: String? = nil,
         region: String? = nil,
+        subRegion: String? = nil,
         country: String = "",
         grapeVarieties: String? = nil,
         alcoholContent: String = "",
-        style: String = "",
-        tastingNotes: String? = nil,
-        foodPairings: String? = nil,
-        criticsScore: String = "",
-        agingPotential: String = "",
-        additionalInfo: String? = nil
+        wineStyleType: String = "",
+        criticsScores: String = "",
+        tastingNotes: TastingNotes? = nil,
+        foodPairings: FoodPairings? = nil,
+        whenToDrinkYear: String = ""
     ) {
         self.id = id
         self.name = name
         self.winery = winery
         self.vintage = vintage
         self.region = region
+        self.subRegion = subRegion
         self.country = country
         self.grapeVarieties = grapeVarieties
         self.alcoholContent = alcoholContent
-        self.style = style
+        self.wineStyleType = wineStyleType
+        self.criticsScores = criticsScores
         self.tastingNotes = tastingNotes
         self.foodPairings = foodPairings
-        self.criticsScore = criticsScore
-        self.agingPotential = agingPotential
-        self.additionalInfo = additionalInfo
+        self.whenToDrinkYear = whenToDrinkYear
     }
     
     enum CodingKeys: String, CodingKey {
-        case name
-        case winery
+        // Standard keys
+        case name = "wine_name"
+        case winery = "winery_producer"
         case vintage
         case region
+        case subRegion = "sub-region"
         case country
-        case grapeVarieties
-        case alcoholContent
-        case style
-        case tastingNotes
-        case foodPairings
-        case criticsScore
-        case agingPotential
-        case additionalInfo
+        case grapeVarieties = "grape_varieties"
+        case alcoholContent = "alcohol_content"
+        case wineStyleType = "wine_style_type"
+        case criticsScores = "critics_scores"
+        case tastingNotes = "tasting_notes"
+        case whenToDrinkYear = "when_to_drink_year"
         
-        // Alternative keys that might be in the response
-        case grapeVariety
-        case grape
-        case grapes
-        case varieties
+        // Food pairing related keys
+        case foodPairings = "food_pairings"
+        
+        // Legacy keys for backward compatibility
+        case style
         case foodPairing
         case pairing
         case pairings
-        case tasting
-        case tastingNote
-        case notes
-        case additional
-        case info
-        case description
+        case agingPotential
+        case additionalInfo
     }
     
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // Initialize id
         self.id = UUID()
         
         // Required fields with fallbacks
         self.name = try container.decodeIfPresent(String.self, forKey: .name) ?? ""
         
-        // Optional fields with alternative keys
+        // Optional fields
         self.winery = try container.decodeIfPresent(String.self, forKey: .winery)
         self.vintage = try container.decodeIfPresent(String.self, forKey: .vintage)
         self.region = try container.decodeIfPresent(String.self, forKey: .region)
+        self.subRegion = try container.decodeIfPresent(String.self, forKey: .subRegion)
         self.country = try container.decodeIfPresent(String.self, forKey: .country) ?? ""
-        
-        // Try multiple possible keys for grape varieties
-        if let grapeVarieties = try container.decodeIfPresent(String.self, forKey: .grapeVarieties) {
-            self.grapeVarieties = grapeVarieties
-        } else if let grapeVariety = try container.decodeIfPresent(String.self, forKey: .grapeVariety) {
-            self.grapeVarieties = grapeVariety
-        } else if let grape = try container.decodeIfPresent(String.self, forKey: .grape) {
-            self.grapeVarieties = grape
-        } else if let grapes = try container.decodeIfPresent(String.self, forKey: .grapes) {
-            self.grapeVarieties = grapes
-        } else if let varieties = try container.decodeIfPresent(String.self, forKey: .varieties) {
-            self.grapeVarieties = varieties
-        }
-        
+        self.grapeVarieties = try container.decodeIfPresent(String.self, forKey: .grapeVarieties)
         self.alcoholContent = try container.decodeIfPresent(String.self, forKey: .alcoholContent) ?? ""
-        self.style = try container.decodeIfPresent(String.self, forKey: .style) ?? ""
         
-        // Try multiple possible keys for tasting notes
-        if let tastingNotes = try container.decodeIfPresent(String.self, forKey: .tastingNotes) {
-            self.tastingNotes = tastingNotes
-        } else if let tasting = try container.decodeIfPresent(String.self, forKey: .tasting) {
-            self.tastingNotes = tasting
-        } else if let tastingNote = try container.decodeIfPresent(String.self, forKey: .tastingNote) {
-            self.tastingNotes = tastingNote
-        } else if let notes = try container.decodeIfPresent(String.self, forKey: .notes) {
-            self.tastingNotes = notes
+        // Try style or wineStyleType
+        if let wineStyleType = try container.decodeIfPresent(String.self, forKey: .wineStyleType) {
+            self.wineStyleType = wineStyleType
+        } else if let style = try container.decodeIfPresent(String.self, forKey: .style) {
+            self.wineStyleType = style
+        } else {
+            self.wineStyleType = ""
         }
         
-        // Try multiple possible keys for food pairings
-        if let foodPairings = try container.decodeIfPresent(String.self, forKey: .foodPairings) {
-            self.foodPairings = foodPairings
-        } else if let foodPairing = try container.decodeIfPresent(String.self, forKey: .foodPairing) {
-            self.foodPairings = foodPairing
-        } else if let pairing = try container.decodeIfPresent(String.self, forKey: .pairing) {
-            self.foodPairings = pairing
-        } else if let pairings = try container.decodeIfPresent(String.self, forKey: .pairings) {
-            self.foodPairings = pairings
+        self.criticsScores = try container.decodeIfPresent(String.self, forKey: .criticsScores) ?? ""
+        
+        // Decode tasting notes as an object or create a default empty one
+        if let tastingNotesContainer = try? container.nestedContainer(keyedBy: TastingNotes.CodingKeys.self, forKey: .tastingNotes) {
+            self.tastingNotes = try TastingNotes(from: decoder)
+        } else {
+            self.tastingNotes = TastingNotes()
         }
         
-        self.criticsScore = try container.decodeIfPresent(String.self, forKey: .criticsScore) ?? ""
-        self.agingPotential = try container.decodeIfPresent(String.self, forKey: .agingPotential) ?? ""
+        // Try to decode food pairings - could be in multiple formats
+        do {
+            if container.contains(.foodPairings) {
+                if let foodPairingsDict = try? container.decode([String: [String: String]].self, forKey: .foodPairings) {
+                    var dishes: [FoodPairings.Dish] = []
+                    for (_, dishInfo) in foodPairingsDict {
+                        if let name = dishInfo["name"],
+                           let ingredientType = dishInfo["ingredient_type"],
+                           let explanation = dishInfo["explanation"] {
+                            dishes.append(FoodPairings.Dish(
+                                name: name,
+                                ingredientType: ingredientType,
+                                explanation: explanation
+                            ))
+                        }
+                    }
+                    self.foodPairings = FoodPairings(dishes: dishes)
+                } else {
+                    // If standard format fails, try alternative string format for backward compatibility
+                    if let foodPairingsString = try container.decodeIfPresent(String.self, forKey: .foodPairings) {
+                        let dish = FoodPairings.Dish(
+                            name: "General Pairings",
+                            ingredientType: "Mixed",
+                            explanation: foodPairingsString
+                        )
+                        self.foodPairings = FoodPairings(dishes: [dish])
+                    } else {
+                        self.foodPairings = FoodPairings(dishes: [])
+                    }
+                }
+            } else {
+                self.foodPairings = FoodPairings(dishes: [])
+            }
+        } catch {
+            print("Error decoding food pairings: \(error)")
+            self.foodPairings = FoodPairings(dishes: [])
+        }
         
-        // Try multiple possible keys for additional info
-        if let additionalInfo = try container.decodeIfPresent(String.self, forKey: .additionalInfo) {
-            self.additionalInfo = additionalInfo
-        } else if let additional = try container.decodeIfPresent(String.self, forKey: .additional) {
-            self.additionalInfo = additional
-        } else if let info = try container.decodeIfPresent(String.self, forKey: .info) {
-            self.additionalInfo = info
-        } else if let description = try container.decodeIfPresent(String.self, forKey: .description) {
-            self.additionalInfo = description
+        // Get whenToDrinkYear or use agingPotential as fallback
+        if let whenToDrinkYear = try container.decodeIfPresent(String.self, forKey: .whenToDrinkYear) {
+            self.whenToDrinkYear = whenToDrinkYear
+        } else if let agingPotential = try container.decodeIfPresent(String.self, forKey: .agingPotential) {
+            self.whenToDrinkYear = agingPotential
+        } else {
+            self.whenToDrinkYear = ""
         }
     }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         
-        // Encode only the primary properties using their primary keys
         try container.encode(name, forKey: .name)
         try container.encodeIfPresent(winery, forKey: .winery)
         try container.encodeIfPresent(vintage, forKey: .vintage)
         try container.encodeIfPresent(region, forKey: .region)
+        try container.encodeIfPresent(subRegion, forKey: .subRegion)
         try container.encode(country, forKey: .country)
         try container.encodeIfPresent(grapeVarieties, forKey: .grapeVarieties)
         try container.encode(alcoholContent, forKey: .alcoholContent)
-        try container.encode(style, forKey: .style)
+        try container.encode(wineStyleType, forKey: .wineStyleType)
+        try container.encode(criticsScores, forKey: .criticsScores)
         try container.encodeIfPresent(tastingNotes, forKey: .tastingNotes)
         try container.encodeIfPresent(foodPairings, forKey: .foodPairings)
-        try container.encode(criticsScore, forKey: .criticsScore)
-        try container.encode(agingPotential, forKey: .agingPotential)
-        try container.encodeIfPresent(additionalInfo, forKey: .additionalInfo)
-        // Note: id is not encoded as it's not part of the API response structure
+        try container.encode(whenToDrinkYear, forKey: .whenToDrinkYear)
+    }
+}
+
+// Extension for TastingNotes for Codable support
+extension WineInfo.TastingNotes {
+    enum CodingKeys: String, CodingKey {
+        case aroma
+        case palate
+        case body
+        case finish
     }
 } 

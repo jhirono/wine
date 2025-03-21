@@ -12,11 +12,25 @@ private struct ConfigurationImpl {
         if let path = Bundle.main.path(forResource: "Config", ofType: "plist"),
            let dict = NSDictionary(contentsOfFile: path) as? [String: Any],
            let value = dict[key] as? String {
+            print("DEBUG: Successfully loaded API key from Config.plist")
             return value
+        } else {
+            print("DEBUG: Failed to load API key from Config.plist")
+            if let path = Bundle.main.path(forResource: "Config", ofType: "plist") {
+                print("DEBUG: Config.plist exists at path: \(path)")
+            } else {
+                print("DEBUG: Config.plist not found in bundle")
+            }
         }
         
         // Then try loading from environment
-        return ProcessInfo.processInfo.environment[key]
+        let envValue = ProcessInfo.processInfo.environment[key]
+        if envValue != nil {
+            print("DEBUG: Successfully loaded API key from environment")
+        } else {
+            print("DEBUG: Failed to load API key from environment")
+        }
+        return envValue
     }
 }
 
@@ -25,17 +39,19 @@ struct APIConfig {
     static let openAIEndpoint = "https://api.openai.com/v1/chat/completions"
     
     // GPT model to use
-    static let openAIModel = "gpt-4o"
+    static let openAIModel = "gpt-4o-mini"
     
     // Secure access to OpenAI API key
     static var openAIAPIKey: String {
         if let key = retrieveKeyFromKeychain() {
+            print("DEBUG: Using API key from keychain")
             return key
         }
         
         // Try to get key from Configuration
         let configKey = ConfigurationImpl.openAIAPIKey
         if !configKey.isEmpty {
+            print("DEBUG: Using API key from Config and storing in keychain")
             // Store key in keychain for future use
             storeKeyInKeychain(configKey)
             return configKey

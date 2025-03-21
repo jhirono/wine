@@ -15,33 +15,84 @@ class OpenAIService {
             throw APIError.requestFailed("Failed to convert image to base64")
         }
         
-        let prompt = createWineAnalysisPrompt()
+        // Step 1: Get basic wine information with lower temperature
+        print("DEBUG: Starting Step 1 - Basic Wine Analysis")
+        let step1Result = try await performWineAnalysis(
+            base64Image: base64Image,
+            prompt: createStep1Prompt(),
+            temperature: 0.2,
+            topP: 0.3,
+            maxTokens: 700
+        )
         
-        let requestBody: [String: Any] = [
-            "model": APIConfig.openAIModel,
-            "messages": [
-                [
-                    "role": "system",
-                    "content": prompt
-                ],
-                [
-                    "role": "user",
-                    "content": [
-                        [
-                            "type": "text",
-                            "text": "Please analyze this wine bottle and provide detailed information about the wine."
-                        ],
-                        [
-                            "type": "image_url",
-                            "image_url": [
-                                "url": "data:image/jpeg;base64,\(base64Image)"
-                            ]
+        print("DEBUG: Step 1 completed, parsing result")
+        let wineInfo = try parseStep1Response(data: step1Result)
+        
+        // Step 2: Get food pairings with higher temperature for creativity
+        print("DEBUG: Starting Step 2 - Food Pairing Analysis")
+        let step2Prompt = createStep2Prompt(wineInfo: wineInfo)
+        let step2Result = try await performWineAnalysis(
+            base64Image: nil, // No need for image in step 2
+            prompt: step2Prompt,
+            temperature: 0.8,
+            topP: 0.9,
+            maxTokens: 1000
+        )
+        
+        print("DEBUG: Step 2 completed, parsing result")
+        let foodPairings = try parseStep2Response(data: step2Result)
+        
+        // Combine the results
+        var completeWineInfo = wineInfo
+        completeWineInfo.foodPairings = foodPairings
+        
+        return completeWineInfo
+    }
+    
+    private func performWineAnalysis(
+        base64Image: String?,
+        prompt: String,
+        temperature: Double,
+        topP: Double,
+        maxTokens: Int
+    ) async throws -> Data {
+        var messages: [[String: Any]] = [
+            [
+                "role": "system",
+                "content": prompt
+            ]
+        ]
+        
+        if let base64Image = base64Image {
+            messages.append([
+                "role": "user",
+                "content": [
+                    [
+                        "type": "text",
+                        "text": "Analyze this wine bottle image and provide detailed information about the wine. Use both the visible label details and reputable wine source data to enhance your response. Return the information in JSON format with the following keys:\n\n{\n  \"winery_producer\": \"\",\n  \"wine_name\": \"\",\n  \"vintage\": \"\",\n  \"country\": \"\",\n  \"region\": \"\",\n  \"sub-region\": \"\",\n  \"grape_varieties\": \"\",  // Only list grape variety names without additional descriptions.\n  \"alcohol_content\": \"\",  // In percentage format (e.g., \"13.5%\").\n  \"wine_style_type\": \"\",\n  \"critics_scores\": \"\",  // Provide numerical ratings or indicate \"N/A\" if unavailable.\n  \"tasting_notes\": {\n    \"aroma\": \"\",\n    \"palate\": \"\",\n    \"body\": \"\",\n    \"finish\": \"\"\n  },\n  \"when_to_drink_year\": \"\"  // Return only numeric years (e.g., \"2024-2030\"), no additional text.\n}"
+                    ],
+                    [
+                        "type": "image_url",
+                        "image_url": [
+                            "url": "data:image/jpeg;base64,\(base64Image)"
                         ]
                     ]
                 ]
-            ],
-            "max_tokens": 1500,
-            "temperature": 0.5 // Lower temperature for more consistent responses
+            ])
+        } else {
+            messages.append([
+                "role": "user",
+                "content": "generate **creative and well-balanced food pairings** that complement its flavor profile. Provide at least 6 pairings covering meats, seafood, vegetables, cheeses, appetizers, and desserts.Return the results in **JSON format**, structured as follows:\n\n{\n  \"food_pairings\": {\n    \"dish_1\": {\n      \"name\": \"\",\n      \"ingredient_type\": \"\", \n      \"explanation\": \"Detailed reasoning on how this dish interacts with the wine's structure, acidity, tannins, and aromas.\"\n    },\n    \"dish_2\": {\n      \"name\": \"\",\n      \"ingredient_type\": \"\", \n      \"explanation\": \"\"\n    },\n    \"dish_3\": {\n      \"name\": \"\",\n      \"ingredient_type\": \"\", \n      \"explanation\": \"\"\n    },\n    \"dish_4\": {\n      \"name\": \"\",\n      \"ingredient_type\": \"\", \n      \"explanation\": \"\"\n    },\n    \"dish_5\": {\n      \"name\": \"\",\n      \"ingredient_type\": \"\", \n      \"explanation\": \"\"\n    },\n    \"dish_6\": {\n      \"name\": \"\",\n      \"ingredient_type\": \"\", \n      \"explanation\": \"\"\n    }\n  }\n}"
+            ])
+        }
+        
+        let requestBody: [String: Any] = [
+            "model": APIConfig.openAIModel,
+            "messages": messages,
+            "max_tokens": maxTokens,
+            "temperature": temperature,
+            "top_p": topP,
+            "response_format": ["type": "json_object"]
         ]
         
         guard let url = URL(string: APIConfig.openAIEndpoint) else {
@@ -82,7 +133,7 @@ class OpenAIService {
                 print("DEBUG: API successful response: \(responseString)")
             }
             
-            return try parseResponse(data: data)
+            return data
         } catch {
             print("DEBUG: Network request error: \(error)")
             throw error
@@ -93,46 +144,168 @@ class OpenAIService {
         return imageData.base64EncodedString()
     }
     
-    private func createWineAnalysisPrompt() -> String {
+    private func createStep1Prompt() -> String {
         return """
-        You are a wine expert and sommelier with deep knowledge of all wine regions, vintages, and styles.
-        
-        Your task is to analyze the wine bottle image and extract detailed information about the wine. I want you to return ONLY a JSON object with the following structure:
-        
+        Analyze this wine bottle image and provide detailed information about the wine. Use both the visible label details and reputable wine source data to enhance your response. Return the information in JSON format with the following keys:
+
         {
-          "name": "Full wine name as shown on the bottle",
-          "winery": "Producer/winery name",
-          "vintage": "Year of harvest (e.g., 2018)",
-          "region": "Wine region or appellation",
-          "country": "Country of origin",
-          "grapeVarieties": "List of grape varieties used",
-          "tastingNotes": "Detailed description of flavor profile, body, acidity, tannins, and finish",
-          "foodPairings": "Suggested food pairings for this wine",
-          "criticsScore": "Any available critics scores (e.g., 92 points Wine Spectator)",
-          "agingPotential": "How long the wine can be aged",
-          "additionalInfo": "Any other relevant information like historical context or special production methods"
+          "winery_producer": "",
+          "wine_name": "",
+          "vintage": "",
+          "country": "",
+          "region": "",
+          "sub-region": "",
+          "grape_varieties": "",  // Only list grape variety names without additional descriptions.
+          "alcohol_content": "",  // In percentage format (e.g., "13.5%").
+          "wine_style_type": "",
+          "critics_scores": "",  // Provide numerical ratings or indicate "N/A" if unavailable.
+          "tasting_notes": {
+            "aroma": "",
+            "palate": "",
+            "body": "",
+            "finish": ""
+          },
+          "when_to_drink_year": ""  // Return only numeric years (e.g., "2024-2030"), no additional text.
         }
-        
-        Rules:
-        1. DO NOT include any text before or after the JSON object
-        2. DO NOT use markdown code blocks (```) around the JSON
-        3. Use VALID JSON syntax - use double quotes for all keys and string values
-        4. If you cannot determine a particular detail from the image, make an educated guess based on your knowledge but indicate uncertainty in the value (e.g., "Likely Cabernet Sauvignon, but label unclear")
-        5. Provide comprehensive analysis for tastingNotes and foodPairings
-        6. Never leave any field empty - use educated guesses when information is not visible
-        7. If the vintage is unclear, estimate it based on the apparent age and style of the bottle
-        
-        Your analysis should showcase deep wine expertise through the detailed information provided in the JSON fields. Remember: respond ONLY with the JSON object, nothing else.
         """
     }
     
-    private func parseResponse(data: Data) throws -> WineInfo {
+    private func createStep2Prompt(wineInfo: WineInfo) -> String {
+        let aroma = wineInfo.tastingNotes?.aroma ?? ""
+        let palate = wineInfo.tastingNotes?.palate ?? ""
+        let body = wineInfo.tastingNotes?.body ?? ""
+        let finish = wineInfo.tastingNotes?.finish ?? ""
+        
+        return """
+        Based on the following wine details, generate **creative and well-balanced food pairings** that complement its flavor profile. Provide at least 6 pairings covering meats, seafood, vegetables, cheeses, appetizers, and desserts.
+
+        {
+          "wine_name": "\(wineInfo.name)",
+          "country": "\(wineInfo.country)",
+          "region": "\(wineInfo.region ?? "")",
+          "sub-region": "\(wineInfo.subRegion ?? "")",
+          "grape_varieties": "\(wineInfo.grapeVarieties ?? "")",
+          "tasting_notes": {
+            "aroma": "\(aroma)",
+            "palate": "\(palate)",
+            "body": "\(body)",
+            "finish": "\(finish)"
+          }
+        }
+
+        Return the results in **JSON format**, structured as follows:
+
+        {
+          "food_pairings": {
+            "dish_1": {
+              "name": "",
+              "ingredient_type": "", 
+              "explanation": "Detailed reasoning on how this dish interacts with the wine's structure, acidity, tannins, and aromas."
+            },
+            "dish_2": {
+              "name": "",
+              "ingredient_type": "", 
+              "explanation": ""
+            },
+            "dish_3": {
+              "name": "",
+              "ingredient_type": "", 
+              "explanation": ""
+            },
+            "dish_4": {
+              "name": "",
+              "ingredient_type": "", 
+              "explanation": ""
+            },
+            "dish_5": {
+              "name": "",
+              "ingredient_type": "", 
+              "explanation": ""
+            },
+            "dish_6": {
+              "name": "",
+              "ingredient_type": "", 
+              "explanation": ""
+            }
+          }
+        }
+        """
+    }
+    
+    private func parseStep1Response(data: Data) throws -> WineInfo {
         do {
             // Try to print the raw JSON response for debugging
             if let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []),
                let jsonData = try? JSONSerialization.data(withJSONObject: jsonObject, options: [.prettyPrinted]),
                let jsonString = String(data: jsonData, encoding: .utf8) {
-                print("DEBUG: Raw JSON response: \(jsonString)")
+                print("DEBUG: Step 1 Raw JSON response: \(jsonString)")
+            }
+            
+            guard let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
+                print("DEBUG: Failed to parse JSON from response")
+                throw APIError.invalidResponse
+            }
+            
+            // Extract content from the API response
+            guard let choices = json["choices"] as? [[String: Any]], 
+                  let firstChoice = choices.first,
+                  let message = firstChoice["message"] as? [String: Any],
+                  let content = message["content"] as? String else {
+                print("DEBUG: Invalid response structure: \(json)")
+                throw APIError.invalidResponse
+            }
+            
+            print("DEBUG: Content from response: \(content)")
+            
+            // Attempt to directly parse the content as a JSON object
+            guard let contentData = content.data(using: .utf8),
+                  let wineDetails = try? JSONSerialization.jsonObject(with: contentData, options: []) as? [String: Any] else {
+                print("DEBUG: Failed to parse content as JSON")
+                throw APIError.decodingError
+            }
+            
+            print("DEBUG: Successfully parsed wine details: \(wineDetails)")
+            
+            // Create the WineInfo object manually from the dictionary
+            var wineInfo = WineInfo(
+                name: wineDetails["wine_name"] as? String ?? "Unknown Wine",
+                winery: wineDetails["winery_producer"] as? String,
+                vintage: wineDetails["vintage"] as? String,
+                region: wineDetails["region"] as? String,
+                subRegion: wineDetails["sub-region"] as? String,
+                country: wineDetails["country"] as? String ?? "Unknown",
+                grapeVarieties: wineDetails["grape_varieties"] as? String,
+                alcoholContent: wineDetails["alcohol_content"] as? String ?? "",
+                wineStyleType: wineDetails["wine_style_type"] as? String ?? "",
+                criticsScores: wineDetails["critics_scores"] as? String ?? "",
+                whenToDrinkYear: wineDetails["when_to_drink_year"] as? String ?? ""
+            )
+            
+            // Parse tasting notes if available
+            if let tastingNotesDict = wineDetails["tasting_notes"] as? [String: String] {
+                wineInfo.tastingNotes = WineInfo.TastingNotes(
+                    aroma: tastingNotesDict["aroma"] ?? "",
+                    palate: tastingNotesDict["palate"] ?? "",
+                    body: tastingNotesDict["body"] ?? "",
+                    finish: tastingNotesDict["finish"] ?? ""
+                )
+            }
+            
+            print("DEBUG: Successfully created WineInfo object")
+            return wineInfo
+        } catch {
+            print("DEBUG: Error in parseStep1Response: \(error)")
+            throw error
+        }
+    }
+    
+    private func parseStep2Response(data: Data) throws -> WineInfo.FoodPairings {
+        do {
+            // Try to print the raw JSON response for debugging
+            if let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []),
+               let jsonData = try? JSONSerialization.data(withJSONObject: jsonObject, options: [.prettyPrinted]),
+               let jsonString = String(data: jsonData, encoding: .utf8) {
+                print("DEBUG: Step 2 Raw JSON response: \(jsonString)")
             }
             
             guard let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
@@ -150,109 +323,37 @@ class OpenAIService {
             
             print("DEBUG: Content from response: \(content)")
             
-            // Extract the JSON content from the response
-            guard let jsonData = extractJSONFromString(content) else {
-                print("DEBUG: Failed to extract JSON from content")
+            // Parse the JSON content directly
+            guard let contentData = content.data(using: .utf8),
+                  let jsonObject = try? JSONSerialization.jsonObject(with: contentData, options: []) as? [String: Any] else {
+                print("DEBUG: Failed to parse content as JSON")
                 throw APIError.decodingError
             }
             
-            do {
-                // First, try direct decoding
-                let decoder = JSONDecoder()
-                
-                do {
-                    let wineInfo = try decoder.decode(WineInfo.self, from: jsonData)
-                    print("DEBUG: Successfully decoded WineInfo: \(wineInfo.name)")
-                    return wineInfo
-                } catch let decodingError {
-                    print("DEBUG: Initial decoding error: \(decodingError)")
-                    
-                    // If direct decoding fails, try to clean up the JSON
-                    if let jsonString = String(data: jsonData, encoding: .utf8) {
-                        print("DEBUG: Attempting to clean up JSON: \(jsonString)")
-                        
-                        // Try parsing as Dictionary and manually constructing WineInfo
-                        if let jsonDict = try? JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] {
-                            print("DEBUG: Successfully parsed as dictionary, attempting to create WineInfo manually")
-                            
-                            // Extract values manually
-                            let name = jsonDict["name"] as? String ?? "Unknown Wine"
-                            let winery = jsonDict["winery"] as? String
-                            let vintage = jsonDict["vintage"] as? String
-                            let region = jsonDict["region"] as? String
-                            let country = jsonDict["country"] as? String ?? ""
-                            
-                            // Try different potential key names for grape varieties
-                            var grapeVarieties: String? = nil
-                            for key in ["grapeVarieties", "grapeVariety", "grape", "grapes", "varieties"] {
-                                if let value = jsonDict[key] as? String, !value.isEmpty {
-                                    grapeVarieties = value
-                                    break
-                                }
-                            }
-                            
-                            let alcoholContent = jsonDict["alcoholContent"] as? String ?? ""
-                            let style = jsonDict["style"] as? String ?? ""
-                            
-                            // Try different potential key names for tasting notes
-                            var tastingNotes: String? = nil
-                            for key in ["tastingNotes", "tasting", "tastingNote", "notes"] {
-                                if let value = jsonDict[key] as? String, !value.isEmpty {
-                                    tastingNotes = value
-                                    break
-                                }
-                            }
-                            
-                            // Try different potential key names for food pairings
-                            var foodPairings: String? = nil
-                            for key in ["foodPairings", "foodPairing", "pairing", "pairings"] {
-                                if let value = jsonDict[key] as? String, !value.isEmpty {
-                                    foodPairings = value
-                                    break
-                                }
-                            }
-                            
-                            let criticsScore = jsonDict["criticsScore"] as? String ?? ""
-                            let agingPotential = jsonDict["agingPotential"] as? String ?? ""
-                            
-                            // Try different potential key names for additional info
-                            var additionalInfo: String? = nil
-                            for key in ["additionalInfo", "additional", "info", "description"] {
-                                if let value = jsonDict[key] as? String, !value.isEmpty {
-                                    additionalInfo = value
-                                    break
-                                }
-                            }
-                            
-                            // Create WineInfo object manually
-                            return WineInfo(
-                                name: name,
-                                winery: winery,
-                                vintage: vintage,
-                                region: region,
-                                country: country,
-                                grapeVarieties: grapeVarieties,
-                                alcoholContent: alcoholContent,
-                                style: style,
-                                tastingNotes: tastingNotes,
-                                foodPairings: foodPairings,
-                                criticsScore: criticsScore,
-                                agingPotential: agingPotential,
-                                additionalInfo: additionalInfo
-                            )
-                        }
-                    }
-                    
-                    // If we got here, both attempts failed
-                    print("DEBUG: All decoding attempts failed")
-                    throw APIError.decodingError
-                }
-            } catch {
-                print("DEBUG: Error in parseResponse: \(error)")
-                throw error
+            // Extract food pairings
+            guard let foodPairingsDict = jsonObject["food_pairings"] as? [String: [String: String]] else {
+                print("DEBUG: Invalid food pairing format")
+                throw APIError.decodingError
             }
+            
+            var dishes: [WineInfo.FoodPairings.Dish] = []
+            
+            // Process each dish
+            for (_, dishInfo) in foodPairingsDict {
+                if let name = dishInfo["name"],
+                   let ingredientType = dishInfo["ingredient_type"],
+                   let explanation = dishInfo["explanation"] {
+                    dishes.append(WineInfo.FoodPairings.Dish(
+                        name: name,
+                        ingredientType: ingredientType,
+                        explanation: explanation
+                    ))
+                }
+            }
+            
+            return WineInfo.FoodPairings(dishes: dishes)
         } catch {
-            print("DEBUG: Error in parseResponse: \(error)")
+            print("DEBUG: Error in parseStep2Response: \(error)")
             throw error
         }
     }
