@@ -2,6 +2,8 @@ import SwiftUI
 
 struct WineInfoView: View {
     let wineInfo: WineInfo
+    @EnvironmentObject var cellarManager: WineCellarManager
+    @State private var showingAddedToCellarAlert = false
     
     var body: some View {
         ScrollView {
@@ -12,11 +14,9 @@ struct WineInfoView: View {
                         .font(.title)
                         .fontWeight(.bold)
                     
-                    if let winery = wineInfo.winery {
-                        Text(winery)
-                            .font(.title2)
-                            .foregroundColor(.secondary)
-                    }
+                    Text(wineInfo.winery)
+                        .font(.title2)
+                        .foregroundColor(.secondary)
                     
                     HStack {
                         if let vintage = wineInfo.vintage {
@@ -48,8 +48,8 @@ struct WineInfoView: View {
                         Text(wineInfo.country)
                             .font(.body)
                         
-                        if let region = wineInfo.region {
-                            Text(region)
+                        if !wineInfo.region.isEmpty {
+                            Text(wineInfo.region)
                                 .font(.body)
                         }
                         
@@ -104,8 +104,12 @@ struct WineInfoView: View {
                         InfoRow(title: "When to Drink", value: wineInfo.whenToDrinkYear)
                     }
                     
-                    if let winery = wineInfo.winery, !winery.isEmpty {
-                        InfoRow(title: "Producer", value: winery)
+                    if !wineInfo.decantingTime.isEmpty {
+                        InfoRow(title: "Recommended Decanting Time", value: wineInfo.decantingTime + " minutes")
+                    }
+                    
+                    if !wineInfo.winery.isEmpty {
+                        InfoRow(title: "Producer", value: wineInfo.winery)
                     }
                     
                     if let subRegion = wineInfo.subRegion, !subRegion.isEmpty {
@@ -115,7 +119,8 @@ struct WineInfoView: View {
                     // Always show some content in this section
                     if wineInfo.criticsScores.isEmpty && 
                        wineInfo.whenToDrinkYear.isEmpty && 
-                       (wineInfo.winery == nil || wineInfo.winery?.isEmpty == true) &&
+                       wineInfo.decantingTime.isEmpty &&
+                       (wineInfo.winery.isEmpty) &&
                        (wineInfo.subRegion == nil || wineInfo.subRegion?.isEmpty == true) {
                         Text("No additional information available")
                             .italic()
@@ -130,14 +135,36 @@ struct WineInfoView: View {
                     Text("Food Pairings")
                         .font(.headline)
                     
-                    if let foodPairings = wineInfo.foodPairings, !foodPairings.dishes.isEmpty {
-                        // Display structured food pairings
-                        FoodPairingsView(foodPairings: foodPairings)
+                    if !wineInfo.foodPairings.dishes.isEmpty {
+                        FoodPairingsView(foodPairings: wineInfo.foodPairings)
                     } else {
                         Text("No food pairing information available")
                             .italic()
                             .foregroundColor(.secondary)
                     }
+                }
+                
+                Divider()
+                
+                // Add to Cellar Button
+                Button(action: {
+                    let bottle = WineBottle(name: wineInfo.name, info: wineInfo)
+                    cellarManager.addBottle(bottle: bottle)
+                    showingAddedToCellarAlert = true
+                }) {
+                    HStack {
+                        Image(systemName: "plus.circle")
+                        Text("Add to Cellar")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                }
+                .padding(.top)
+                .alert("Added to Cellar", isPresented: $showingAddedToCellarAlert) {
+                    Button("OK", role: .cancel) { }
                 }
             }
             .padding()
@@ -266,17 +293,19 @@ struct WineInfoView_Previews: PreviewProvider {
         let wineInfo = WineInfo(
             name: "Château Example Cabernet Sauvignon",
             winery: "Château Example",
-            vintage: "2015",
             region: "Bordeaux",
-            subRegion: "Saint-Émilion",
             country: "France",
+            vintage: "2015",
+            description: "A full-bodied Bordeaux with rich flavors of blackcurrant and cedar.",
+            foodPairings: foodPairings,
+            subRegion: "Saint-Émilion",
             grapeVarieties: "Cabernet Sauvignon, Merlot",
             alcoholContent: "14.5%",
             wineStyleType: "Red Wine, Full-Bodied",
             criticsScores: "92 Points (Wine Spectator)",
             tastingNotes: tastingNotes,
-            foodPairings: foodPairings,
-            whenToDrinkYear: "2023-2030"
+            whenToDrinkYear: "2023-2030",
+            decantingTime: "45"
         )
         
         return NavigationView {

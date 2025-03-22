@@ -1,0 +1,51 @@
+{
+    "winery_producer": "Château Moulin Haut-Laroque",
+    "wine_name": "Moulin Haut-Laroque",
+    "vintage": "2011",
+    "country": "France",
+    "region": "Bordeaux",
+    "sub-region": "Fronsac",
+    "grape_varieties": "Merlot, Cabernet Franc, Malbec",
+    "alcohol_content": "13.5%",
+    "wine_style_type": "Full-bodied Red Wine",
+    "critics_scores": "92",
+    "tasting_notes": {
+      "aroma": "Blackberry, plum, cedar, tobacco, and earthy undertones.",
+      "palate": "Rich and structured with dark fruit flavors, velvety tannins, and a touch of spice.",
+      "body": "Full-bodied with a well-integrated balance of fruit and acidity.",
+      "finish": "Long and lingering with notes of black cherry and cocoa."
+    },
+    "food_pairings": {  // At least 6 food pairings covering meats, seafood, vegetables, cheeses, appetizers, and desserts.
+      "dish_1": {
+        "name": "Grilled Ribeye Steak with Peppercorn Sauce",
+        "ingredient_type": "Red Meat",
+        "explanation": "The wine's firm tannins and dark fruit flavors complement the char and richness of the steak, while the peppercorn sauce adds a spicy kick that matches the wine’s depth."
+      },
+      "dish_2": {
+        "name": "Duck Breast with Blackberry Reduction",
+        "ingredient_type": "Poultry",
+        "explanation": "The acidity and fruitiness of the blackberry sauce mirror the wine’s dark berry notes, while the duck’s fatty richness balances the tannins."
+      },
+      "dish_3": {
+        "name": "Roasted Portobello Mushrooms with Balsamic Glaze",
+        "ingredient_type": "Vegetarian",
+        "explanation": "The earthy umami of the mushrooms enhances the wine’s tobacco and cedar notes, while balsamic glaze provides a sweet-tart contrast."
+      },
+      "dish_4": {
+        "name": "Aged Comté Cheese with Walnuts",
+        "ingredient_type": "Cheese",
+        "explanation": "The nutty complexity of Comté aligns with the wine’s structured tannins, while walnuts add texture that enhances the wine’s mouthfeel."
+      },
+      "dish_5": {
+        "name": "Dark Chocolate Tart with Raspberry Coulis",
+        "ingredient_type": "Dessert",
+        "explanation": "The cocoa flavors of the tart echo the wine’s chocolatey finish, while the raspberry coulis adds a bright acidity that keeps the pairing fresh."
+      },
+      "dish_6": {
+        "name": "Slow-Braised Lamb Shank with Rosemary and Garlic",
+        "ingredient_type": "Red Meat",
+        "explanation": "The deep flavors of the lamb are softened by slow cooking, allowing the wine’s fruit and spice elements to shine, while rosemary and garlic add aromatic complexity."
+      }
+    },
+    "when_to_drink_year": "2020-2030"
+  }

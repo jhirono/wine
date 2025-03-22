@@ -17,6 +17,11 @@
 		9900003429A0003429A00034 /* WineInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9900003529A0003529A00035 /* WineInfoView.swift */; };
 		9900003629A0003629A00036 /* APIConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9900003729A0003729A00037 /* APIConfig.swift */; };
 		9900003829A0003829A00038 /* OpenAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9900003929A0003929A00039 /* OpenAIService.swift */; };
+		A10000A129A000A129A000A1 /* WineBottle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000A229A000A229A000A2 /* WineBottle.swift */; };
+		A10000A329A000A329A000A3 /* WineCellarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000A429A000A429A000A4 /* WineCellarManager.swift */; };
+		A10000A529A000A529A000A5 /* CellarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000A629A000A629A000A6 /* CellarView.swift */; };
+		A10000A729A000A729A000A7 /* CellarWineDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000A829A000A829A000A8 /* CellarWineDetailView.swift */; };
+		B10000B129A000B129A000B1 /* ImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000B229A000B229A000B2 /* ImagePicker.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +36,11 @@
 		9900003529A0003529A00035 /* WineInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WineInfoView.swift; sourceTree = "<group>"; };
 		9900003729A0003729A00037 /* APIConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIConfig.swift; sourceTree = "<group>"; };
 		9900003929A0003929A00039 /* OpenAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIService.swift; sourceTree = "<group>"; };
+		A10000A229A000A229A000A2 /* WineBottle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WineBottle.swift; sourceTree = "<group>"; };
+		A10000A429A000A429A000A4 /* WineCellarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WineCellarManager.swift; sourceTree = "<group>"; };
+		A10000A629A000A629A000A6 /* CellarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CellarView.swift; sourceTree = "<group>"; };
+		A10000A829A000A829A000A8 /* CellarWineDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CellarWineDetailView.swift; sourceTree = "<group>"; };
+		B10000B229A000B229A000B2 /* ImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePicker.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -87,6 +97,8 @@
 			isa = PBXGroup;
 			children = (
 				9900003129A0003129A00031 /* WineInfo.swift */,
+				A10000A229A000A229A000A2 /* WineBottle.swift */,
+				A10000A429A000A429A000A4 /* WineCellarManager.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -96,6 +108,9 @@
 			children = (
 				9900003329A0003329A00033 /* MainContentView.swift */,
 				9900003529A0003529A00035 /* WineInfoView.swift */,
+				A10000A629A000A629A000A6 /* CellarView.swift */,
+				A10000A829A000A829A000A8 /* CellarWineDetailView.swift */,
+				B10000B229A000B229A000B2 /* ImagePicker.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -183,10 +198,15 @@
 				9900002029A0002029A0002D /* ContentView.swift in Sources */,
 				9900003429A0003429A00034 /* WineInfoView.swift in Sources */,
 				9900003029A0003029A00030 /* WineInfo.swift in Sources */,
+				A10000A129A000A129A000A1 /* WineBottle.swift in Sources */,
+				A10000A729A000A729A000A7 /* CellarWineDetailView.swift in Sources */,
+				A10000A329A000A329A000A3 /* WineCellarManager.swift in Sources */,
 				9900003629A0003629A00036 /* APIConfig.swift in Sources */,
 				9900001E29A0001E29A0001E /* WineAppApp.swift in Sources */,
+				A10000A529A000A529A000A5 /* CellarView.swift in Sources */,
 				9900003829A0003829A00038 /* OpenAIService.swift in Sources */,
 				9900003229A0003229A00032 /* MainContentView.swift in Sources */,
+				B10000B129A000B129A000B1 /* ImagePicker.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -320,6 +340,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"WineApp/Preview Content\"";
+				DEVELOPMENT_TEAM = 27XMU4BUMU;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need access to your camera to take photos of wine bottles.";
@@ -335,7 +356,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.WineApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jhirono.WineApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -351,6 +372,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"WineApp/Preview Content\"";
+				DEVELOPMENT_TEAM = 27XMU4BUMU;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need access to your camera to take photos of wine bottles.";
@@ -366,7 +388,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.WineApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jhirono.WineApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;

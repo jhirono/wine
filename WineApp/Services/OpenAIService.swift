@@ -5,20 +5,41 @@ enum APIError: Error {
     case requestFailed(String)
     case invalidResponse
     case decodingError
+    case tooManyImages
 }
 
 class OpenAIService {
     
+    // Maximum number of images allowed for analysis
+    private let maxImagesAllowed = 2
+    
+    // Single image analysis method (for backward compatibility)
     func analyzeWineImage(imageData: Data) async throws -> WineInfo {
-        guard let base64Image = convertImageToBase64(imageData: imageData) else {
-            print("DEBUG: Failed to convert image to base64")
-            throw APIError.requestFailed("Failed to convert image to base64")
+        return try await analyzeWineImages(imagesData: [imageData])
+    }
+    
+    // New method to handle multiple images
+    func analyzeWineImages(imagesData: [Data]) async throws -> WineInfo {
+        // Validate number of images
+        if imagesData.isEmpty {
+            throw APIError.requestFailed("No images provided")
+        }
+        
+        if imagesData.count > maxImagesAllowed {
+            throw APIError.tooManyImages
+        }
+        
+        // Convert all images to base64
+        let base64Images = imagesData.compactMap { convertImageToBase64(imageData: $0) }
+        if base64Images.count != imagesData.count {
+            print("DEBUG: Failed to convert one or more images to base64")
+            throw APIError.requestFailed("Failed to convert one or more images to base64")
         }
         
         // Step 1: Get basic wine information with lower temperature
-        print("DEBUG: Starting Step 1 - Basic Wine Analysis")
+        print("DEBUG: Starting Step 1 - Basic Wine Analysis with \(base64Images.count) images")
         let step1Result = try await performWineAnalysis(
-            base64Image: base64Image,
+            base64Images: base64Images,
             prompt: createStep1Prompt(),
             temperature: 0.2,
             topP: 0.3,
@@ -26,13 +47,13 @@ class OpenAIService {
         )
         
         print("DEBUG: Step 1 completed, parsing result")
-        let wineInfo = try parseStep1Response(data: step1Result)
+        var wineInfo = try parseStep1Response(data: step1Result)
         
         // Step 2: Get food pairings with higher temperature for creativity
         print("DEBUG: Starting Step 2 - Food Pairing Analysis")
         let step2Prompt = createStep2Prompt(wineInfo: wineInfo)
         let step2Result = try await performWineAnalysis(
-            base64Image: nil, // No need for image in step 2
+            base64Images: nil, // No need for image in step 2
             prompt: step2Prompt,
             temperature: 0.8,
             topP: 0.9,
@@ -42,15 +63,14 @@ class OpenAIService {
         print("DEBUG: Step 2 completed, parsing result")
         let foodPairings = try parseStep2Response(data: step2Result)
         
-        // Combine the results
-        var completeWineInfo = wineInfo
-        completeWineInfo.foodPairings = foodPairings
+        // Update the wine info with the food pairings
+        wineInfo.foodPairings = foodPairings
         
-        return completeWineInfo
+        return wineInfo
     }
     
     private func performWineAnalysis(
-        base64Image: String?,
+        base64Images: [String]?,
         prompt: String,
         temperature: Double,
         topP: Double,
@@ -63,26 +83,32 @@ class OpenAIService {
             ]
         ]
         
-        if let base64Image = base64Image {
+        if let base64Images = base64Images, !base64Images.isEmpty {
+            var content: [[String: Any]] = [
+                [
+                    "type": "text",
+                    "text": "Analyze this wine bottle image" + (base64Images.count > 1 ? "s" : "") + " and provide detailed information about the wine."
+                ]
+            ]
+            
+            // Add each image to the content array
+            for base64Image in base64Images {
+                content.append([
+                    "type": "image_url",
+                    "image_url": [
+                        "url": "data:image/jpeg;base64,\(base64Image)"
+                    ]
+                ])
+            }
+            
             messages.append([
                 "role": "user",
-                "content": [
-                    [
-                        "type": "text",
-                        "text": "Analyze this wine bottle image and provide detailed information about the wine. Use both the visible label details and reputable wine source data to enhance your response. Return the information in JSON format with the following keys:\n\n{\n  \"winery_producer\": \"\",\n  \"wine_name\": \"\",\n  \"vintage\": \"\",\n  \"country\": \"\",\n  \"region\": \"\",\n  \"sub-region\": \"\",\n  \"grape_varieties\": \"\",  // Only list grape variety names without additional descriptions.\n  \"alcohol_content\": \"\",  // In percentage format (e.g., \"13.5%\").\n  \"wine_style_type\": \"\",\n  \"critics_scores\": \"\",  // Provide numerical ratings or indicate \"N/A\" if unavailable.\n  \"tasting_notes\": {\n    \"aroma\": \"\",\n    \"palate\": \"\",\n    \"body\": \"\",\n    \"finish\": \"\"\n  },\n  \"when_to_drink_year\": \"\"  // Return only numeric years (e.g., \"2024-2030\"), no additional text.\n}"
-                    ],
-                    [
-                        "type": "image_url",
-                        "image_url": [
-                            "url": "data:image/jpeg;base64,\(base64Image)"
-                        ]
-                    ]
-                ]
+                "content": content
             ])
         } else {
             messages.append([
                 "role": "user",
-                "content": "generate **creative and well-balanced food pairings** that complement its flavor profile. Provide at least 6 pairings covering meats, seafood, vegetables, cheeses, appetizers, and desserts.Return the results in **JSON format**, structured as follows:\n\n{\n  \"food_pairings\": {\n    \"dish_1\": {\n      \"name\": \"\",\n      \"ingredient_type\": \"\", \n      \"explanation\": \"Detailed reasoning on how this dish interacts with the wine's structure, acidity, tannins, and aromas.\"\n    },\n    \"dish_2\": {\n      \"name\": \"\",\n      \"ingredient_type\": \"\", \n      \"explanation\": \"\"\n    },\n    \"dish_3\": {\n      \"name\": \"\",\n      \"ingredient_type\": \"\", \n      \"explanation\": \"\"\n    },\n    \"dish_4\": {\n      \"name\": \"\",\n      \"ingredient_type\": \"\", \n      \"explanation\": \"\"\n    },\n    \"dish_5\": {\n      \"name\": \"\",\n      \"ingredient_type\": \"\", \n      \"explanation\": \"\"\n    },\n    \"dish_6\": {\n      \"name\": \"\",\n      \"ingredient_type\": \"\", \n      \"explanation\": \"\"\n    }\n  }\n}"
+                "content": "Based on the wine details provided, generate food pairings."
             ])
         }
         
@@ -165,7 +191,8 @@ class OpenAIService {
             "body": "",
             "finish": ""
           },
-          "when_to_drink_year": ""  // Return only numeric years (e.g., "2024-2030"), no additional text.
+          "when_to_drink_year": "",  // Return only numeric years (e.g., "2024-2030"), no additional text.
+          "decanting_time": "" // Return recommended decanting time in minutes
         }
         """
     }
@@ -182,7 +209,7 @@ class OpenAIService {
         {
           "wine_name": "\(wineInfo.name)",
           "country": "\(wineInfo.country)",
-          "region": "\(wineInfo.region ?? "")",
+          "region": "\(wineInfo.region)",
           "sub-region": "\(wineInfo.subRegion ?? "")",
           "grape_varieties": "\(wineInfo.grapeVarieties ?? "")",
           "tasting_notes": {
@@ -269,16 +296,18 @@ class OpenAIService {
             // Create the WineInfo object manually from the dictionary
             var wineInfo = WineInfo(
                 name: wineDetails["wine_name"] as? String ?? "Unknown Wine",
-                winery: wineDetails["winery_producer"] as? String,
-                vintage: wineDetails["vintage"] as? String,
-                region: wineDetails["region"] as? String,
-                subRegion: wineDetails["sub-region"] as? String,
+                winery: wineDetails["winery_producer"] as? String ?? "",
+                region: wineDetails["region"] as? String ?? "",
                 country: wineDetails["country"] as? String ?? "Unknown",
+                vintage: wineDetails["vintage"] as? String,
+                description: wineDetails["description"] as? String ?? "",
+                subRegion: wineDetails["sub-region"] as? String,
                 grapeVarieties: wineDetails["grape_varieties"] as? String,
                 alcoholContent: wineDetails["alcohol_content"] as? String ?? "",
                 wineStyleType: wineDetails["wine_style_type"] as? String ?? "",
                 criticsScores: wineDetails["critics_scores"] as? String ?? "",
-                whenToDrinkYear: wineDetails["when_to_drink_year"] as? String ?? ""
+                whenToDrinkYear: wineDetails["when_to_drink_year"] as? String ?? "",
+                decantingTime: wineDetails["decanting_time"] as? String ?? ""
             )
             
             // Parse tasting notes if available
@@ -343,12 +372,20 @@ class OpenAIService {
                 if let name = dishInfo["name"],
                    let ingredientType = dishInfo["ingredient_type"],
                    let explanation = dishInfo["explanation"] {
-                    dishes.append(WineInfo.FoodPairings.Dish(
+                    
+                    let dish = WineInfo.FoodPairings.Dish(
                         name: name,
                         ingredientType: ingredientType,
                         explanation: explanation
-                    ))
+                    )
+                    dishes.append(dish)
                 }
+            }
+            
+            // If no dishes were parsed successfully, throw an error
+            if dishes.isEmpty {
+                print("DEBUG: No valid dishes found in the response")
+                throw APIError.decodingError
             }
             
             return WineInfo.FoodPairings(dishes: dishes)
@@ -380,3 +417,4 @@ class OpenAIService {
         return nil
     }
 } 
+

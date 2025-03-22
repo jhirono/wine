@@ -3,18 +3,20 @@ import Foundation
 struct WineInfo: Identifiable, Codable {
     var id = UUID()
     var name: String
-    var winery: String?
+    var winery: String
+    var region: String
+    var country: String
     var vintage: String?
-    var region: String?
+    var description: String
+    var foodPairings: FoodPairings
     var subRegion: String?
-    var country: String = ""
     var grapeVarieties: String?
     var alcoholContent: String = ""
     var wineStyleType: String = ""
     var criticsScores: String = ""
     var tastingNotes: TastingNotes?
-    var foodPairings: FoodPairings?
     var whenToDrinkYear: String = ""
+    var decantingTime: String = ""
     
     struct TastingNotes: Codable {
         var aroma: String = ""
@@ -24,52 +26,50 @@ struct WineInfo: Identifiable, Codable {
     }
     
     struct FoodPairings: Codable {
-        var dishes: [Dish] = []
+        var dishes: [Dish]
         
-        struct Dish: Codable, Identifiable {
+        struct Dish: Identifiable, Codable {
             var id = UUID()
             var name: String
             var ingredientType: String
             var explanation: String
-            
-            enum CodingKeys: String, CodingKey {
-                case name
-                case ingredientType = "ingredient_type"
-                case explanation
-            }
         }
     }
     
     init(
         id: UUID = UUID(),
         name: String,
-        winery: String? = nil,
+        winery: String,
+        region: String,
+        country: String,
         vintage: String? = nil,
-        region: String? = nil,
+        description: String,
+        foodPairings: FoodPairings = FoodPairings(dishes: []),
         subRegion: String? = nil,
-        country: String = "",
         grapeVarieties: String? = nil,
         alcoholContent: String = "",
         wineStyleType: String = "",
         criticsScores: String = "",
         tastingNotes: TastingNotes? = nil,
-        foodPairings: FoodPairings? = nil,
-        whenToDrinkYear: String = ""
+        whenToDrinkYear: String = "",
+        decantingTime: String = ""
     ) {
         self.id = id
         self.name = name
         self.winery = winery
-        self.vintage = vintage
         self.region = region
-        self.subRegion = subRegion
         self.country = country
+        self.vintage = vintage
+        self.description = description
+        self.foodPairings = foodPairings
+        self.subRegion = subRegion
         self.grapeVarieties = grapeVarieties
         self.alcoholContent = alcoholContent
         self.wineStyleType = wineStyleType
         self.criticsScores = criticsScores
         self.tastingNotes = tastingNotes
-        self.foodPairings = foodPairings
         self.whenToDrinkYear = whenToDrinkYear
+        self.decantingTime = decantingTime
     }
     
     enum CodingKeys: String, CodingKey {
@@ -86,6 +86,8 @@ struct WineInfo: Identifiable, Codable {
         case criticsScores = "critics_scores"
         case tastingNotes = "tasting_notes"
         case whenToDrinkYear = "when_to_drink_year"
+        case decantingTime = "decanting_time"
+        case description
         
         // Food pairing related keys
         case foodPairings = "food_pairings"
@@ -109,13 +111,13 @@ struct WineInfo: Identifiable, Codable {
         self.name = try container.decodeIfPresent(String.self, forKey: .name) ?? ""
         
         // Optional fields
-        self.winery = try container.decodeIfPresent(String.self, forKey: .winery)
+        self.winery = try container.decodeIfPresent(String.self, forKey: .winery) ?? ""
         self.vintage = try container.decodeIfPresent(String.self, forKey: .vintage)
-        self.region = try container.decodeIfPresent(String.self, forKey: .region)
-        self.subRegion = try container.decodeIfPresent(String.self, forKey: .subRegion)
+        self.region = try container.decodeIfPresent(String.self, forKey: .region) ?? ""
         self.country = try container.decodeIfPresent(String.self, forKey: .country) ?? ""
         self.grapeVarieties = try container.decodeIfPresent(String.self, forKey: .grapeVarieties)
         self.alcoholContent = try container.decodeIfPresent(String.self, forKey: .alcoholContent) ?? ""
+        self.description = try container.decodeIfPresent(String.self, forKey: .description) ?? ""
         
         // Try style or wineStyleType
         if let wineStyleType = try container.decodeIfPresent(String.self, forKey: .wineStyleType) {
@@ -135,41 +137,29 @@ struct WineInfo: Identifiable, Codable {
             self.tastingNotes = TastingNotes()
         }
         
-        // Try to decode food pairings - could be in multiple formats
-        do {
-            if container.contains(.foodPairings) {
-                if let foodPairingsDict = try? container.decode([String: [String: String]].self, forKey: .foodPairings) {
-                    var dishes: [FoodPairings.Dish] = []
-                    for (_, dishInfo) in foodPairingsDict {
-                        if let name = dishInfo["name"],
-                           let ingredientType = dishInfo["ingredient_type"],
-                           let explanation = dishInfo["explanation"] {
-                            dishes.append(FoodPairings.Dish(
-                                name: name,
-                                ingredientType: ingredientType,
-                                explanation: explanation
-                            ))
-                        }
-                    }
-                    self.foodPairings = FoodPairings(dishes: dishes)
+        // Decode food pairings
+        if let foodPairingsObj = try? container.decode(FoodPairings.self, forKey: .foodPairings) {
+            self.foodPairings = foodPairingsObj
+        } else if let foodPairingsStrings = try? container.decode([String].self, forKey: .foodPairings) {
+            // Convert string array to FoodPairings object for backward compatibility
+            let dishes = foodPairingsStrings.map { pairingString in
+                let components = pairingString.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: true)
+                if components.count >= 2 {
+                    return FoodPairings.Dish(
+                        name: String(components[0].trimmingCharacters(in: .whitespaces)),
+                        ingredientType: "Other",
+                        explanation: String(components[1].trimmingCharacters(in: .whitespaces))
+                    )
                 } else {
-                    // If standard format fails, try alternative string format for backward compatibility
-                    if let foodPairingsString = try container.decodeIfPresent(String.self, forKey: .foodPairings) {
-                        let dish = FoodPairings.Dish(
-                            name: "General Pairings",
-                            ingredientType: "Mixed",
-                            explanation: foodPairingsString
-                        )
-                        self.foodPairings = FoodPairings(dishes: [dish])
-                    } else {
-                        self.foodPairings = FoodPairings(dishes: [])
-                    }
+                    return FoodPairings.Dish(
+                        name: pairingString,
+                        ingredientType: "Other",
+                        explanation: ""
+                    )
                 }
-            } else {
-                self.foodPairings = FoodPairings(dishes: [])
             }
-        } catch {
-            print("Error decoding food pairings: \(error)")
+            self.foodPairings = FoodPairings(dishes: dishes)
+        } else {
             self.foodPairings = FoodPairings(dishes: [])
         }
         
@@ -187,9 +177,9 @@ struct WineInfo: Identifiable, Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         
         try container.encode(name, forKey: .name)
-        try container.encodeIfPresent(winery, forKey: .winery)
+        try container.encode(winery, forKey: .winery)
         try container.encodeIfPresent(vintage, forKey: .vintage)
-        try container.encodeIfPresent(region, forKey: .region)
+        try container.encode(region, forKey: .region)
         try container.encodeIfPresent(subRegion, forKey: .subRegion)
         try container.encode(country, forKey: .country)
         try container.encodeIfPresent(grapeVarieties, forKey: .grapeVarieties)
@@ -197,8 +187,10 @@ struct WineInfo: Identifiable, Codable {
         try container.encode(wineStyleType, forKey: .wineStyleType)
         try container.encode(criticsScores, forKey: .criticsScores)
         try container.encodeIfPresent(tastingNotes, forKey: .tastingNotes)
-        try container.encodeIfPresent(foodPairings, forKey: .foodPairings)
+        try container.encode(foodPairings, forKey: .foodPairings)
         try container.encode(whenToDrinkYear, forKey: .whenToDrinkYear)
+        try container.encode(decantingTime, forKey: .decantingTime)
+        try container.encode(description, forKey: .description)
     }
 }
 

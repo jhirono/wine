@@ -58,14 +58,14 @@ The app follows a clean architecture pattern with separation of concerns:
 #### APIConfig.swift
 - Configuration for OpenAI API:
   - API endpoint URLs
-  - Model selection (GPT-4o)
+  - Model selection (GPT-4o-mini)
   - Secure storage of API key in iOS Keychain
   - Fallback mechanism for development
   - Keychain operations for storing and retrieving the API key
 
 #### OpenAIService.swift
 - Handles communication with OpenAI's API:
-  - Image analysis using GPT-4o's vision capabilities
+  - Image analysis using GPT-4o-mini's vision capabilities
   - Conversion of images to base64 format
   - Construction of prompt for wine analysis
   - API request formation and execution
